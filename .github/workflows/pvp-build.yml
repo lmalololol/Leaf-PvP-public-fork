@@ -1,0 +1,78 @@
+name: Leaf-PvP build
+
+on:
+  push:
+    branches: [ "pvp" ]
+  workflow_dispatch:
+    inputs:
+      export_sources:
+        description: "Also upload the patched sources (for writing PvP changes)"
+        required: false
+        default: "false"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      MC_VERSION: "26.3"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '25'
+          cache: gradle
+
+      - name: Configure Git
+        run: |
+          git config --global user.email "no-reply@github.com"
+          git config --global user.name "Github Actions"
+
+      - name: Apply Leaf's patches
+        run: ./gradlew applyAllPatches --stacktrace --no-daemon
+
+      - name: Apply the Leaf-PvP changes
+        run: bash pvp/apply.sh
+
+      - name: Export the patched sources
+        if: ${{ github.event.inputs.export_sources == 'true' }}
+        run: |
+          mkdir -p export
+          for d in leaf-server/src/minecraft/java paper-server/src/main/java leaf-server/src/main/java leaf-api/src/main/java paper-api/src/main/java; do
+            if [ -d "$d" ]; then tar -czf "export/$(echo "$d" | tr '/' '_').tar.gz" -C "$d" .; fi
+          done
+          ls -la export
+
+      - name: Upload the patched sources
+        if: ${{ github.event.inputs.export_sources == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: sources
+          path: export/
+          retention-days: 7
+
+      - name: Build the Paperclip jar
+        run: ./gradlew createPaperclipJar --stacktrace --no-daemon
+
+      - name: Collect the jar
+        run: |
+          mkdir -p out
+          find . -path ./out -prune -o -name "*paperclip*.jar" -print | grep -v "/cache/" | while read -r f; do cp "$f" out/; done
+          ls -la out
+          short=$(git rev-parse --short HEAD)
+          for f in out/*.jar; do mv "$f" "out/leaf-pvp-${MC_VERSION}-${{ github.run_number }}-${short}.jar"; break; done
+          (cd out && sha256sum *.jar | tee SHA256SUMS.txt)
+
+      - name: Upload the server jar
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-jar
+          path: out/
+          retention-days: 30
+          if-no-files-found: error
