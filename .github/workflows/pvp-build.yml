@@ -14,6 +14,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 120
+    permissions:
+      contents: write
     env:
       MC_VERSION: "26.3"
     steps:
@@ -69,6 +71,34 @@ jobs:
           for f in out/*.jar; do mv "$f" "out/leaf-pvp-${MC_VERSION}-${{ github.run_number }}-${short}.jar"; break; done
           (cd out && sha256sum *.jar | tee SHA256SUMS.txt)
 
+      - name: Boot test (starts, /leaf reload writes leaf-pvp.yml, stops)
+        run: |
+          mkdir -p boot && cd boot
+          echo "eula=true" > eula.txt
+          printf 'online-mode=false\nlevel-type=minecraft\\:flat\nspawn-protection=0\n' > server.properties
+          jar=$(realpath "$(ls ../out/*.jar | head -n1)")
+          mkfifo console.in
+          sleep 100000 > console.in &
+          holder=$!
+          java -Xmx2G -jar "$jar" nogui < console.in > boot.log 2>&1 &
+          server=$!
+          for i in $(seq 1 600); do
+            grep -q "Done (" boot.log && break
+            kill -0 $server 2>/dev/null || break
+            sleep 1
+          done
+          grep "Done (" boot.log || { echo "server did not start"; tail -n 200 boot.log; exit 1; }
+          echo "leaf reload" > console.in
+          sleep 10
+          echo "stop" > console.in
+          for i in $(seq 1 90); do kill -0 $server 2>/dev/null || break; sleep 1; done
+          kill $server $holder 2>/dev/null || true
+          grep -i "running\|Leaf-PvP" boot.log | head -n 20
+          test -f leaf-pvp.yml || { echo "leaf-pvp.yml was not written"; tail -n 100 boot.log; exit 1; }
+          cat leaf-pvp.yml
+          grep -n "Exception" boot.log || true
+          if grep -n "io.github.lmalololol.leafpvp" boot.log; then echo "Leaf-PvP code in a stack trace"; tail -n 150 boot.log; exit 1; fi
+
       - name: Upload the server jar
         uses: actions/upload-artifact@v4
         with:
@@ -76,3 +106,14 @@ jobs:
           path: out/
           retention-days: 30
           if-no-files-found: error
+
+      - name: Publish a release (pushes to pvp only)
+        if: ${{ github.event_name == 'push' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          short=$(git rev-parse --short HEAD)
+          tag="${MC_VERSION}-${{ github.run_number }}-${short}"
+          gh release create "$tag" out/*.jar out/SHA256SUMS.txt --target "${{ github.sha }}" --latest \
+            --title "Leaf-PvP ${MC_VERSION} build ${{ github.run_number }}" \
+            --notes "Leaf ver/${MC_VERSION} with the Leaf-PvP changes (see PVP.md). Built by GitHub Actions run ${{ github.run_id }} from ${short}."

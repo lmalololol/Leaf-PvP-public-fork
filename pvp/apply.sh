@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# Applies the Leaf-PvP changes on top of Leaf's patched sources (after ./gradlew applyAllPatches):
-#   pvp/minecraft/*.diff -> leaf-server/src/minecraft/java  (Minecraft classes)
-#   pvp/paper/*.diff     -> paper-server/src/main/java      (Paper classes)
-# New classes live in leaf-server/src/main/java and need no diff.
+# Applies the Leaf-PvP changes on top of Leaf's patched sources (after ./gradlew applyAllPatches).
+# pvp/apply.py swaps exact pieces of Leaf's code and fails the build when Leaf moved one; any
+# pvp/minecraft/*.diff (leaf-server/src/minecraft/java) and pvp/paper/*.diff (paper-server/src/main/java) are applied
+# after it. New classes live in leaf-server/src/main/java/io/github/lmalololol/leafpvp and need neither.
 set -euo pipefail
 root="$(cd "$(dirname "$0")/.." && pwd)"
+python3 "$root/pvp/apply.py" "$root"
 apply() {
   local dir="$1" target="$2"
   [ -d "$root/pvp/$dir" ] || return 0
