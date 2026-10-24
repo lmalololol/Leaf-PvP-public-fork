@@ -97,7 +97,7 @@ jobs:
           test -f leaf-pvp.yml || { echo "leaf-pvp.yml was not written"; tail -n 100 boot.log; exit 1; }
           cat leaf-pvp.yml
           grep -n "Exception" boot.log || true
-          if grep -n "io.github.lmalololol.leafpvp" boot.log; then echo "Leaf-PvP code in a stack trace"; tail -n 150 boot.log; exit 1; fi
+          if grep -n "at io\.github\.lmalololol\.leafpvp" boot.log; then echo "Leaf-PvP code in a stack trace"; tail -n 150 boot.log; exit 1; fi
 
       - name: Upload the server jar
         uses: actions/upload-artifact@v4

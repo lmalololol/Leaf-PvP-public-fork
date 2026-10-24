@@ -1,6 +1,5 @@
 package io.github.lmalololol.leafpvp;
 
-import com.mojang.logging.LogUtils;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -15,6 +14,7 @@ import net.minecraft.world.phys.Vec3;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Leaf-PvP: knockback profiles per world.
@@ -50,7 +50,7 @@ public final class Knockback {
         }
     }
 
-    private static final Logger LOGGER = LogUtils.getLogger();
+    private static final Logger LOGGER = LoggerFactory.getLogger("Leaf-PvP");
     private static final File FILE = new File("leaf-pvp.yml");
     private static final List<String> HEADER = List.of(
         "Leaf-PvP knockback profiles.",
@@ -147,7 +147,7 @@ public final class Knockback {
                 final String name = key(key);
                 double friction = s.getDouble("friction", 2.0);
                 if (!(friction > 0.0)) {
-                    LOGGER.warn("Leaf-PvP: knockback profile {} has friction {}; it must be above 0, using 2.0", name, friction);
+                    LOGGER.warn("Knockback profile {} has friction {}; it must be above 0, using 2.0", name, friction);
                     friction = 2.0;
                 }
                 read.put(name, new Profile(name, friction, s.getDouble("horizontal", 1.0), s.getDouble("vertical", 1.0),
@@ -171,7 +171,7 @@ public final class Knockback {
                     continue;
                 }
                 if (!read.containsKey(key(name))) {
-                    LOGGER.warn("Leaf-PvP: world {} names knockback profile {}, which leaf-pvp.yml does not have", world, name);
+                    LOGGER.warn("World {} names knockback profile {}, which leaf-pvp.yml does not have", world, name);
                     continue;
                 }
                 worlds.put(world, key(name));
@@ -183,7 +183,7 @@ public final class Knockback {
         if (!FILE.exists() || profiles == null) {
             save();
         }
-        LOGGER.info("Leaf-PvP: {} knockback profiles, {} worlds set in {}", PROFILES.size(), CONFIGURED.size(), FILE.getName());
+        LOGGER.info("{} knockback profiles, {} worlds set in {}", PROFILES.size(), CONFIGURED.size(), FILE.getName());
     }
 
     private static synchronized void save() {
@@ -210,7 +210,7 @@ public final class Knockback {
         try {
             yml.save(FILE);
         } catch (final IOException e) {
-            LOGGER.warn("Leaf-PvP: could not write {}", FILE.getName(), e);
+            LOGGER.warn("Could not write {}", FILE.getName(), e);
         }
     }
 
