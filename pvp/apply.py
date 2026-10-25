@@ -60,6 +60,25 @@ CHANGES = [
         """"Brand-Name" to "Leaf", // Leaf - Rebrand""",
         """"Brand-Name" to "Leaf-PvP", // Leaf-PvP - Rebrand""",
     ),
+    (
+        "plugin compatibility: CraftItemStack#asCraftMirror",
+        "paper-server/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java",
+        """    public static ItemStack asBukkitMirror(net.minecraft.world.item.ItemStack original) {
+        return new CraftItemStack((original == null || original.isEmpty()) ? null : original);
+    }
+""",
+        """    public static ItemStack asBukkitMirror(net.minecraft.world.item.ItemStack original) {
+        return new CraftItemStack((original == null || original.isEmpty()) ? null : original);
+    }
+
+    // Leaf-PvP start - plugin compatibility: the name before 26.3. Plugins that shade an older Cloud command framework
+    // (Shizuka among them) look it up by reflection when they start; without it none of their commands register
+    public static ItemStack asCraftMirror(net.minecraft.world.item.ItemStack original) {
+        return asBukkitMirror(original);
+    }
+    // Leaf-PvP end - plugin compatibility
+""",
+    ),
 ]
 
 failed = False

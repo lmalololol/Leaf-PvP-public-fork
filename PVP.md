@@ -12,6 +12,7 @@ it is. The branch is `pvp`; GitHub Actions builds it, boot-tests it and publishe
 | Players' movement goes out every tick (vanilla: every other tick), so opponents move smoothly on screen. | `EntityTypes.PLAYER` |
 | `/leaf reload` also reloads `leaf-pvp.yml`. | `ReloadCommand` |
 | The brand is `Leaf-PvP` (F3 and `/version`). | `leaf-server/build.gradle.kts` |
+| `CraftItemStack#asCraftMirror` is back as another name for `asBukkitMirror` (renamed in 26.3): plugins that shade an older Cloud command framework, Shizuka among them, look it up when they start and register no commands without it. | `CraftItemStack` |
 
 The changes to Leaf's own code are in `pvp/apply.py`. Each one swaps one exact piece of Leaf's code and stops the
 build if Leaf changed that piece, so an update from Leaf can never drop one silently.
